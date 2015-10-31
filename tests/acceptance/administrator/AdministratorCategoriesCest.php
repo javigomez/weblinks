@@ -9,125 +9,134 @@
  */
 class AdministratorCategoriesCest
 {
-	public function administratorCreateCategory(\Step\Acceptance\category $I)
+	public $categoryTitle;
+
+	public function __construct()
 	{
-		$I->am('Administrator');
-		$categoryName = 'automated testing' . rand(1, 100);
-		$I->wantToTest('Category creation in /administrator/');
-
-		$I->doAdministratorLogin();
-
-		$I->amGoingTo('Navigate to Categories page in /administrator/ and create a Category');
-		$I->createCategory($categoryName);
-		$I->amGoingTo('Delete the Category which was created');
-		$I->trashCategory($categoryName);
-		$I->deleteCategory($categoryName);
+		$this->categoryTitle = 'AdministratorCategoriesCest category' . rand(1, 100);
 	}
 
 	public function administratorCreateCategoryWithoutTitleFails(AcceptanceTester $I)
 	{
 		$I->am('Administrator');
-		$I->wantToTest('Category creation in /administrator/ without title');
+		$I->wantToTest('Category creation in /administrator/ without title fails');
 
 		$I->doAdministratorLogin();
 
 		$I->amGoingTo('Navigate to Categories page in /administrator/');
 		$I->amOnPage('administrator/index.php?option=com_categories&extension=com_weblinks');
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
 		$I->expectTo('see categories page');
 
 		$I->amGoingTo('try to save a category with empty title and it should fail');
-		$I->click(['xpath' => "//button[@onclick=\"Joomla.submitbutton('category.add')\"]"]);
-		$I->waitForText('Weblinks: New Category', '30', ['css' => 'h1']);
-		$I->click(['xpath' => "//button[@onclick=\"Joomla.submitbutton('category.apply')\"]"]);
+		$I->clickToolbarButton('new');
+		$I->waitForText('Weblinks: New Category', '60', ['css' => 'h1']);
+		$I->clickToolbarButton('save');
 		$I->expectTo('see an error when trying to save a category without title');
 		$I->see('Invalid field:  Title', ['id' => 'system-message-container']);
 	}
 
+	public function administratorCreateCategory(\Step\Acceptance\category $I)
+	{
+		$I->am('Administrator');
+		$I->wantToTest('create a Category in /administrator/');
+
+		$I->doAdministratorLogin();
+
+		$I->amGoingTo('Navigate to Categories page in /administrator/ and create a Category');
+		$I->amOnPage('administrator/index.php?option=com_categories&extension=com_weblinks');
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
+		$I->expectTo('see categories page');
+		$I->checkForPhpNoticesOrWarnings();
+
+		$I->amGoingTo('try to save a category with a filled title');
+		$I->clickToolbarButton('New');
+		$I->waitForText('Weblinks: New Category', '60', ['css' => 'h1']);
+		$I->fillField(['id' => 'jform_title'], $this->categoryTitle);
+		$I->clickToolbarButton('Save & Close');
+		$I->expectTo('see a success message after saving the category');
+		$I->see('Category successfully saved', ['id' => 'system-message-container']);
+	}
+
+	/**
+	 * @depends administratorCreateCategory
+	 */
 	public function administratorPublishCategory(\Step\Acceptance\category $I)
 	{
 		$I->am('Administrator');
 
-		$categoryName = 'automated testing pub' . rand(1, 100);
-		$I->wantToTest('Category creation in /administrator/');
+		$I->wantToTest('Publishing a Category in /administrator/');
 
 		$I->doAdministratorLogin();
-
-		$I->amGoingTo('Navigate to Categories page in /administrator/ and create a new Category');
-		$I->createCategory($categoryName);
-
-		$I->searchForItem($categoryName);
-
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
+		$I->amGoingTo('Navigate to Categories page in /administrator/');
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
+		$I->amOnPage('administrator/index.php?option=com_categories&extension=com_weblinks');
+		$I->searchForItem($this->categoryName);
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
 		$I->checkAllResults();
-
-		$I->amGoingTo('try to publish a weblink category');
+		$I->amGoingTo('try to publish a Weblinks Category');
 		$I->clickToolbarButton('publish');
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
+		$I->waitForElement(['id' => 'system-message-container'], '60');
 		$I->expectTo('see a success message after publishing the category');
 		$I->see('1 category successfully published.', ['id' => 'system-message-container']);
-
-		$I->amGoingTo('Delete the Category which was created');
-		$I->trashCategory($categoryName);
-		$I->deleteCategory($categoryName);
 	}
 
+	/**
+	 * @depends administratorPublishCategory
+	 */
 	public function administratorUnpublishCategory(\Step\Acceptance\category $I)
 	{
 		$I->am('Administrator');
-
-		$categoryName = 'automated testing unpub' . rand(1, 100);
-		$I->wantToTest('Category creation in /administrator/');
+		$I->wantToTest('Unpublish a Category in /administrator/');
 
 		$I->doAdministratorLogin();
-
 		$I->amGoingTo('Navigate to Categories page in /administrator/');
-		$I->createCategory($categoryName);
-
-		$I->searchForItem($categoryName);
-
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
+		$I->amOnPage('administrator/index.php?option=com_categories&extension=com_weblinks');
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
+		$I->searchForItem($this->categoryName);
 		$I->checkAllResults();
-
-		//publish the category
-		$I->amGoingTo('try to publish a weblink category');
-		$I->clickToolbarButton('publish');
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
-		$I->expectTo('see a success message after publishing the category');
-		$I->see('1 category successfully published.', ['id' => 'system-message-container']);
-
-		// Unpublish it again
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
-		$I->checkAllResults();
-
-		$I->amGoingTo('Try to unpublish a weblink category');
+		$I->amGoingTo('try to unpublish a Weblinks Category');
 		$I->clickToolbarButton('unpublish');
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
+		$I->waitForElement(['id' => 'system-message-container'], '60');
 		$I->expectTo('See a success message after unpublishing the category');
 		$I->see('1 category successfully unpublished', ['id' => 'system-message-container']);
-
-		//delete the category
-		$I->amGoingTo('Delete the Category which was created');
-		$I->trashCategory($categoryName);
-		$I->deleteCategory($categoryName);
 	}
+
+	/**
+	 * @depends administratorUnpublishCategory
+	 */
 	public function administratorArchiveCategory(\Step\Acceptance\category $I)
 	{
 		$I->am('Administrator');
 		$I->wantToTest('Archiving Category in /administrator/');
 		$I->doAdministratorLogin();
-		$salt = rand(1,100);
-		$I->createCategory('automated testing arch'.$salt);
-		$I->amGoingTo('Search for automated testing');
-		$I->fillField(['xpath' => "//input[@id=\"filter_search\"]"], "automated testing arch".$salt. "\n");
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
-		$I->amGoingTo('Select the first weblink');
-		$I->click(['xpath' => "//input[@id=\"cb0\"]"]);
+
+		$I->doAdministratorLogin();
+		$I->amGoingTo('Navigate to Categories page in /administrator/');
+		$I->amOnPage('administrator/index.php?option=com_categories&extension=com_weblinks');
+		$I->waitForText('Weblinks: Categories', '60', ['css' => 'h1']);
+		$I->searchForItem($this->categoryName);
+		$I->checkAllResults();
 		$I->amGoingTo('try to archive a weblink category');
-		$I->click(['xpath' => "//button[@onclick=\"if (document.adminForm.boxchecked.value==0){alert('Please first make a selection from the list.');}else{ Joomla.submitbutton('categories.archive')}\"]"]);
-		$I->waitForText('Weblinks: Categories', '30', ['css' => 'h1']);
-		$I->expectTo('see a success message after Archiving the category');$I->see('1 category successfully archived.', ['id' => 'system-message-container']);
-		$I->setFilter('select status','Archived');
-		$I->trashCategory('automated testing arch'.$salt);
+		$I->clickToolbarButton('archive');
+		$I->waitForElement(['id' => 'system-message-container'], '60');
+		$I->expectTo('see a success message after Archiving the category');
+		$I->see('1 category successfully archived.', ['id' => 'system-message-container']);
+	}
+
+	/**
+	 * @todo
+	 */
+	public function administratorUnarchiveCategory()
+	{
+
+	}
+
+	/**
+	 * @todo
+	 */
+	public function administratorDeleteCategory()
+	{
+
 	}
 }
